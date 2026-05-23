@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.networkcabinet",
+  "appName": "网线管家",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
