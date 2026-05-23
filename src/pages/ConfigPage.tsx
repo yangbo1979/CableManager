@@ -616,9 +616,9 @@ export const ConfigPage = () => {
                 label="端口数量"
                 name="portCount"
                 type="number"
-                value={formData.portCount || 24}
-                onChange={(value) => setFormData({ ...formData, portCount: parseInt(value) || 24 })}
-                min={1}
+                value={formData.portCount}
+                onChange={(value) => setFormData({ ...formData, portCount: parseInt(value) || 0 })}
+                min={0}
                 max={48}
               />
             </>

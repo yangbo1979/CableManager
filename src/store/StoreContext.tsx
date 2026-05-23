@@ -132,7 +132,7 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
     case 'ADD_RACK': {
-      const portCount = (action.payload as any).portCount || 24;
+      const portCount = (action.payload as any).portCount ?? 24;
       const rack: Rack = { ...action.payload, portCount, id: generateId(), createdAt: now(), updatedAt: now() };
       const newPorts: Port[] = [];
       for (let i = 1; i <= portCount; i++) {

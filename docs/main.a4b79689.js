@@ -27625,7 +27625,7 @@ var initialState = {
   selectedResourceType: 'datacenter'
 };
 function reducer(state, action) {
-  var _a;
+  var _a, _b;
   switch (action.type) {
     case 'ADD_TOAST':
       {
@@ -27734,7 +27734,7 @@ function reducer(state, action) {
       }
     case 'ADD_RACK':
       {
-        var portCount = action.payload.portCount || 24;
+        var portCount = (_a = action.payload.portCount) !== null && _a !== void 0 ? _a : 24;
         var rack = __assign(__assign({}, action.payload), {
           portCount: portCount,
           id: generateId(),
@@ -27764,7 +27764,7 @@ function reducer(state, action) {
           return r.id === action.payload.id;
         });
         if (!rack) return state;
-        var newPortCount = (_a = action.payload.data.portCount) !== null && _a !== void 0 ? _a : rack.portCount;
+        var newPortCount = (_b = action.payload.data.portCount) !== null && _b !== void 0 ? _b : rack.portCount;
         var currentPortCount = rack.portCount;
         var newPorts = __spreadArrays(state.ports.filter(function (p) {
           return p.deviceId !== action.payload.id;
@@ -59143,13 +59143,13 @@ var ConfigPage = function () {
     label: "\u7AEF\u53E3\u6570\u91CF",
     name: "portCount",
     type: "number",
-    value: formData.portCount || 24,
+    value: formData.portCount,
     onChange: function (value) {
       return setFormData(__assign(__assign({}, formData), {
-        portCount: parseInt(value) || 24
+        portCount: parseInt(value) || 0
       }));
     },
-    min: 1,
+    min: 0,
     max: 48
   })), (selectedResourceType === 'server' || selectedResourceType === 'switch') && /*#__PURE__*/_react.default.createElement(_react.default.Fragment, null, /*#__PURE__*/_react.default.createElement(_Select.Select, {
     label: "\u6240\u5C5E\u673A\u67DC",
