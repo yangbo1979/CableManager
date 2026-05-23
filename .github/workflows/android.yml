@@ -43,6 +43,9 @@ jobs:
       - name: Build web app
         run: npm run build
 
+      - name: List dist directory
+        run: ls -la dist/
+
       - name: Add Android platform
         run: npx cap add android
 
@@ -53,10 +56,12 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
 
-      - name: List build output
-        run: ls -la android/app/build/outputs/apk/release/
+      - name: Check build output directory
+        run: |
+          ls -la android/app/build/outputs/apk/
+          ls -la android/app/build/outputs/apk/release/ 2>/dev/null || echo "Release directory not found"
 
       - name: Generate unique version
         id: version
