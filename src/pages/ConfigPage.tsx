@@ -89,14 +89,30 @@ export const ConfigPage = () => {
   const handleOpenModal = (mode: 'create' | 'edit', data?: ConfigFormData) => {
     setIsEditMode(mode === 'edit');
     const defaultPortCount = selectedResourceType === 'switch' ? 24 : (selectedResourceType === 'server' || selectedResourceType === 'seat') ? 4 : 0;
-    const defaultUHeight = selectedResourceType === 'server' ? 2 : (selectedResourceType === 'switch' ? 1 : 0);
+    const defaultUHeight = selectedResourceType === 'server' ? 1 : (selectedResourceType === 'switch' ? 1 : 0);
     const defaultUPosition = (selectedResourceType === 'server' || selectedResourceType === 'switch') ? 1 : 0;
+    
+    let initialDatacenterId = '';
+    let initialRackId = '';
+    
+    if (selectedResourceType === 'rack' || selectedResourceType === 'seat') {
+      const datacenterOptions = getParentOptions();
+      if (datacenterOptions.length === 1) {
+        initialDatacenterId = datacenterOptions[0].value;
+      }
+    } else if (selectedResourceType === 'server' || selectedResourceType === 'switch') {
+      const rackOptions = getParentOptions();
+      if (rackOptions.length === 1) {
+        initialRackId = rackOptions[0].value;
+      }
+    }
+    
     setFormData({ 
       name: '', 
       location: '', 
       description: '',
-      datacenterId: '',
-      rackId: '',
+      datacenterId: initialDatacenterId,
+      rackId: initialRackId,
       uHeight: defaultUHeight,
       uPosition: defaultUPosition,
       position: '',

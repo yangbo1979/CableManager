@@ -3,12 +3,13 @@ import { useStore } from '../store/StoreContext';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
 import { Select } from '../components/Select';
-import { Server, Network, X, Wifi, WifiOff, Link2 } from 'lucide-react';
+import { Server, Network, X, Link2 } from 'lucide-react';
 
 export const RackPage = () => {
-  const { darkMode, racks, servers, switches, datacenters, ports, links } = useStore();
+  const { darkMode, racks, servers, switches, datacenters, seats, ports, links } = useStore();
   const [selectedRackId, setSelectedRackId] = useState('');
   const [selectedDevice, setSelectedDevice] = useState<{ device: any; type: 'server' | 'switch' } | null>(null);
+  const [selectedPort, setSelectedPort] = useState<any>(null);
 
   useEffect(() => {
     if (racks.length > 0 && !selectedRackId) {
@@ -30,6 +31,114 @@ export const RackPage = () => {
 
   const closeDeviceModal = () => {
     setSelectedDevice(null);
+  };
+
+  const closePortModal = () => {
+    setSelectedPort(null);
+  };
+
+  // 获取端口的完整信息
+  const getPortDetails = (port: any) => {
+    // 首先获取当前端口所属设备的信息
+    let currentDeviceInfo: any = null;
+    let currentDeviceType: string = '';
+    let currentRackInfo: any = null;
+    let currentDatacenterInfo: any = null;
+    
+    if (port.deviceType === 'server') {
+      currentDeviceInfo = servers.find(s => s.id === port.deviceId);
+      currentDeviceType = '服务器';
+    } else if (port.deviceType === 'switch') {
+      currentDeviceInfo = switches.find(s => s.id === port.deviceId);
+      currentDeviceType = '交换机';
+    } else if (port.deviceType === 'rack') {
+      currentDeviceInfo = racks.find(r => r.id === port.deviceId);
+      currentDeviceType = '机柜';
+    } else if (port.deviceType === 'seat') {
+      currentDeviceInfo = seats.find(s => s.id === port.deviceId);
+      currentDeviceType = '座位';
+    }
+
+    // 获取当前端口的机柜信息
+    if (port.deviceType === 'rack') {
+      currentRackInfo = currentDeviceInfo;
+    } else if (port.deviceType === 'server' || port.deviceType === 'switch') {
+      currentRackInfo = racks.find(r => r.id === currentDeviceInfo?.rackId);
+    }
+
+    // 获取当前端口的机房信息
+    if (currentRackInfo?.datacenterId) {
+      currentDatacenterInfo = datacenters.find(d => d.id === currentRackInfo.datacenterId);
+    } else if (port.deviceType === 'seat' && currentDeviceInfo?.datacenterId) {
+      currentDatacenterInfo = datacenters.find(d => d.id === currentDeviceInfo.datacenterId);
+    }
+
+    // 然后获取连接信息
+    const connection = getPortConnection(port.id);
+    let otherPort = null;
+    let otherDeviceInfo: any = null;
+    let otherDeviceType: string = '';
+    let otherRackInfo: any = null;
+    let otherDatacenterInfo: any = null;
+    
+    if (connection && connection.otherPort) {
+      otherPort = connection.otherPort;
+      
+      // 获取对端设备信息
+      if (otherPort.deviceType === 'server') {
+        otherDeviceInfo = servers.find(s => s.id === otherPort.deviceId);
+        otherDeviceType = '服务器';
+      } else if (otherPort.deviceType === 'switch') {
+        otherDeviceInfo = switches.find(s => s.id === otherPort.deviceId);
+        otherDeviceType = '交换机';
+      } else if (otherPort.deviceType === 'rack') {
+        otherDeviceInfo = racks.find(r => r.id === otherPort.deviceId);
+        otherDeviceType = '机柜';
+      } else if (otherPort.deviceType === 'seat') {
+        otherDeviceInfo = seats.find(s => s.id === otherPort.deviceId);
+        otherDeviceType = '座位';
+      }
+
+      // 获取对端机柜信息
+      if (otherPort.deviceType === 'rack') {
+        otherRackInfo = otherDeviceInfo;
+      } else if (otherPort.deviceType === 'server' || otherPort.deviceType === 'switch') {
+        otherRackInfo = racks.find(r => r.id === otherDeviceInfo?.rackId);
+      } else if (otherPort.deviceType === 'seat') {
+        // 座位可能没有机柜，需要另外处理
+      }
+
+      // 获取对端机房信息
+      if (otherRackInfo?.datacenterId) {
+        otherDatacenterInfo = datacenters.find(d => d.id === otherRackInfo.datacenterId);
+      } else if (otherPort.deviceType === 'seat' && otherDeviceInfo?.datacenterId) {
+        otherDatacenterInfo = datacenters.find(d => d.id === otherDeviceInfo.datacenterId);
+      }
+    }
+
+    // 至少返回当前端口信息
+    return {
+      currentPort: port,
+      currentDevice: currentDeviceInfo,
+      currentDeviceType: currentDeviceType,
+      currentRack: currentRackInfo,
+      currentDatacenter: currentDatacenterInfo,
+      otherPort: otherPort,
+      otherDevice: otherDeviceInfo,
+      otherDeviceType: otherDeviceType,
+      otherRack: otherRackInfo,
+      otherDatacenter: otherDatacenterInfo,
+      link: connection?.link
+    };
+  };
+
+  // 处理端口点击
+  const handlePortClick = (port: any) => {
+    const connection = getPortConnection(port.id);
+    // 只有当有连接关系时才显示弹窗
+    if (connection && connection.otherPort) {
+      setSelectedPort(port);
+    }
   };
 
   const selectedRack = racks.find((r) => r.id === selectedRackId);
@@ -68,10 +177,10 @@ export const RackPage = () => {
 
   // 获取端口的连接信息
   const getPortConnection = (portId: string) => {
-    const link = links.find((l) => l.sourcePortId === portId || l.targetPortId === portId);
+    const link = links.find((l) => l.fromPortId === portId || l.toPortId === portId);
     if (!link) return null;
     
-    const otherPortId = link.sourcePortId === portId ? link.targetPortId : link.sourcePortId;
+    const otherPortId = link.fromPortId === portId ? link.toPortId : link.fromPortId;
     const otherPort = ports.find((p) => p.id === otherPortId);
     
     return { link, otherPort };
@@ -149,6 +258,7 @@ export const RackPage = () => {
                 })().map((port) => {
                   const connection = port.id.startsWith('virtual') ? null : getPortConnection(port.id);
                   const isConnected = !!connection;
+                  const isVirtual = port.id.startsWith('virtual');
                   
                   // 根据状态设置颜色
                   let bgClass = '';
@@ -172,11 +282,14 @@ export const RackPage = () => {
                     textClass = darkMode ? 'text-gray-400' : 'text-gray-600';
                   }
                   
+                  const isClickable = !isVirtual && isConnected;
+                  
                   return (
                     <div
                       key={port.id}
-                      className={`relative p-1.5 rounded border-2 transition-all ${bgClass} ${borderClass}`}
-                      title={`${port.name}: ${port.status === 'used' ? '已使用' : port.status === 'reserved' ? '已预留' : '空闲'}`}
+                      className={`relative p-1.5 rounded border-2 transition-all ${bgClass} ${borderClass} ${isClickable ? 'cursor-pointer hover:opacity-80' : ''}`}
+                      title={`${port.name}: ${port.status === 'used' ? '已使用' : port.status === 'reserved' ? '已预留' : '空闲'}${isVirtual ? ' (虚拟)' : ''}`}
+                      onClick={() => isClickable && handlePortClick(port)}
                     >
                       <span className={`text-xs font-medium ${textClass}`}>
                         {port.name}
@@ -396,6 +509,7 @@ export const RackPage = () => {
                   {getDevicePorts(selectedDevice.device.id).map((port) => {
                     const connection = getPortConnection(port.id);
                     const isConnected = !!connection;
+                    const isClickable = port.status === 'used' || isConnected;
                     
                     return (
                       <div
@@ -408,16 +522,17 @@ export const RackPage = () => {
                             : darkMode
                             ? 'bg-gray-700/50 border-gray-600'
                             : 'bg-gray-100 border-gray-200'
-                        }`}
+                        } ${isClickable ? 'cursor-pointer hover:opacity-80' : ''}`}
+                        onClick={() => isClickable && handlePortClick(port)}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <span className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                             {port.name}
                           </span>
-                          {isConnected ? (
-                            <Wifi className={`w-4 h-4 ${darkMode ? 'text-green-400' : 'text-green-500'}`} />
+                          {port.status === 'used' || isConnected ? (
+                            <Network className={`w-4 h-4 ${darkMode ? 'text-green-400' : 'text-green-500'}`} />
                           ) : (
-                            <WifiOff className={`w-4 h-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                            <span className={`w-4 h-4 flex items-center justify-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>○</span>
                           )}
                         </div>
                         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -427,7 +542,7 @@ export const RackPage = () => {
                           <div className={`mt-2 pt-2 border-t text-xs ${darkMode ? 'border-gray-600 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
                             <div className="flex items-center gap-1">
                               <Link2 className="w-3 h-3" />
-                              <span>连接至 {connection.otherPort.name}</span>
+                              <span>点击查看详情</span>
                             </div>
                           </div>
                         )}
@@ -446,6 +561,93 @@ export const RackPage = () => {
           </div>
         </div>
       )}
+
+      {/* 端口详情弹窗 */}
+      {selectedPort && (() => {
+        const portDetails = getPortDetails(selectedPort);
+        if (!portDetails || !portDetails.otherPort) return null;
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" onClick={closePortModal}>
+            <div 
+              className={`rounded-lg max-w-lg w-full overflow-hidden shadow-xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 弹窗头部 */}
+              <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${darkMode ? 'bg-green-900' : 'bg-green-500'}`}>
+                    <Link2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      对端端口信息
+                    </h3>
+                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {portDetails.currentPort.name} → {portDetails.otherPort.name}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closePortModal}
+                  className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 弹窗内容 */}
+              <div className="p-4">
+                {/* 对端端口信息 */}
+                <div className={`p-4 rounded-lg ${darkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>端口名称：</span>
+                      <span className={darkMode ? 'text-white' : 'text-gray-900'}>{portDetails.otherPort.name}</span>
+                    </div>
+                    {portDetails.otherDeviceType && (
+                      <div className="flex justify-between">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>设备类型：</span>
+                        <span className={darkMode ? 'text-white' : 'text-gray-900'}>{portDetails.otherDeviceType}</span>
+                      </div>
+                    )}
+                    {portDetails.otherDevice && (
+                      <div className="flex justify-between">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>设备名称：</span>
+                        <span className={darkMode ? 'text-white' : 'text-gray-900'}>{portDetails.otherDevice.name}</span>
+                      </div>
+                    )}
+                    {portDetails.otherRack && (
+                      <div className="flex justify-between">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>机柜名称：</span>
+                        <span className={darkMode ? 'text-white' : 'text-gray-900'}>{portDetails.otherRack.name}</span>
+                      </div>
+                    )}
+                    {portDetails.otherDatacenter && (
+                      <div className="flex justify-between">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>机房名称：</span>
+                        <span className={darkMode ? 'text-white' : 'text-gray-900'}>{portDetails.otherDatacenter.name}</span>
+                      </div>
+                    )}
+                    {portDetails.otherDevice && portDetails.otherDevice.uPosition !== undefined && (
+                      <div className="flex justify-between">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>U位位置：</span>
+                        <span className={darkMode ? 'text-white' : 'text-gray-900'}>U{portDetails.otherDevice.uPosition}</span>
+                      </div>
+                    )}
+                    {portDetails.otherDevice && portDetails.otherDevice.position && (
+                      <div className="flex justify-between">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>座位位置：</span>
+                        <span className={darkMode ? 'text-white' : 'text-gray-900'}>{portDetails.otherDevice.position}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

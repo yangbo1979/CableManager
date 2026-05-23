@@ -1,4 +1,5 @@
 import React from 'react';
+import { Network } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: 'free' | 'used' | 'reserved' | 'online' | 'offline';
@@ -27,10 +28,12 @@ export const StatusBadge = ({ status, label }: StatusBadgeProps) => {
 
   return (
     <>
-      <span className={`hidden dark:inline-block px-2 py-0.5 text-xs font-medium rounded-full ${darkConfig.bg} ${darkConfig.text}`}>
+      <span className={`hidden dark:inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${darkConfig.bg} ${darkConfig.text}`}>
+        {status === 'used' && <Network className="w-3 h-3" />}
         {label || darkConfig.label}
       </span>
-      <span className={`inline-block dark:hidden px-2 py-0.5 text-xs font-medium rounded-full ${config.bg} ${config.text}`}>
+      <span className={`inline-flex dark:hidden items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${config.bg} ${config.text}`}>
+        {status === 'used' && <Network className="w-3 h-3" />}
         {label || config.label}
       </span>
     </>

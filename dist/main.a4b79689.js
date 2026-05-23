@@ -58071,6 +58071,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.StatusBadge = void 0;
 var _react = _interopRequireDefault(require("react"));
+var _lucideReact = require("lucide-react");
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 var statusConfig = {
   free: {
@@ -58132,13 +58133,17 @@ var StatusBadge = function (_a) {
   var config = statusConfig[status];
   var darkConfig = darkStatusConfig[status];
   return /*#__PURE__*/_react.default.createElement(_react.default.Fragment, null, /*#__PURE__*/_react.default.createElement("span", {
-    className: "hidden dark:inline-block px-2 py-0.5 text-xs font-medium rounded-full " + darkConfig.bg + " " + darkConfig.text
-  }, label || darkConfig.label), /*#__PURE__*/_react.default.createElement("span", {
-    className: "inline-block dark:hidden px-2 py-0.5 text-xs font-medium rounded-full " + config.bg + " " + config.text
-  }, label || config.label));
+    className: "hidden dark:inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full " + darkConfig.bg + " " + darkConfig.text
+  }, status === 'used' && /*#__PURE__*/_react.default.createElement(_lucideReact.Network, {
+    className: "w-3 h-3"
+  }), label || darkConfig.label), /*#__PURE__*/_react.default.createElement("span", {
+    className: "inline-flex dark:hidden items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full " + config.bg + " " + config.text
+  }, status === 'used' && /*#__PURE__*/_react.default.createElement(_lucideReact.Network, {
+    className: "w-3 h-3"
+  }), label || config.label));
 };
 exports.StatusBadge = StatusBadge;
-},{"react":"node_modules/react/index.js"}],"src/pages/HomePage.tsx":[function(require,module,exports) {
+},{"react":"node_modules/react/index.js","lucide-react":"node_modules/lucide-react/dist/esm/lucide-react.js"}],"src/pages/HomePage.tsx":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -58689,14 +58694,27 @@ var ConfigPage = function () {
   var handleOpenModal = function (mode, data) {
     setIsEditMode(mode === 'edit');
     var defaultPortCount = selectedResourceType === 'switch' ? 24 : selectedResourceType === 'server' || selectedResourceType === 'seat' ? 4 : 0;
-    var defaultUHeight = selectedResourceType === 'server' ? 2 : selectedResourceType === 'switch' ? 1 : 0;
+    var defaultUHeight = selectedResourceType === 'server' ? 1 : selectedResourceType === 'switch' ? 1 : 0;
     var defaultUPosition = selectedResourceType === 'server' || selectedResourceType === 'switch' ? 1 : 0;
+    var initialDatacenterId = '';
+    var initialRackId = '';
+    if (selectedResourceType === 'rack' || selectedResourceType === 'seat') {
+      var datacenterOptions = getParentOptions();
+      if (datacenterOptions.length === 1) {
+        initialDatacenterId = datacenterOptions[0].value;
+      }
+    } else if (selectedResourceType === 'server' || selectedResourceType === 'switch') {
+      var rackOptions = getParentOptions();
+      if (rackOptions.length === 1) {
+        initialRackId = rackOptions[0].value;
+      }
+    }
     setFormData(__assign({
       name: '',
       location: '',
       description: '',
-      datacenterId: '',
-      rackId: '',
+      datacenterId: initialDatacenterId,
+      rackId: initialRackId,
       uHeight: defaultUHeight,
       uPosition: defaultUPosition,
       position: '',
@@ -59291,6 +59309,7 @@ var RackPage = function () {
     servers = _a.servers,
     switches = _a.switches,
     datacenters = _a.datacenters,
+    seats = _a.seats,
     ports = _a.ports,
     links = _a.links;
   var _b = (0, _react.useState)(''),
@@ -59299,6 +59318,9 @@ var RackPage = function () {
   var _c = (0, _react.useState)(null),
     selectedDevice = _c[0],
     setSelectedDevice = _c[1];
+  var _d = (0, _react.useState)(null),
+    selectedPort = _d[0],
+    setSelectedPort = _d[1];
   (0, _react.useEffect)(function () {
     if (racks.length > 0 && !selectedRackId) {
       setSelectedRackId(racks[0].id);
@@ -59318,6 +59340,130 @@ var RackPage = function () {
   };
   var closeDeviceModal = function () {
     setSelectedDevice(null);
+  };
+  var closePortModal = function () {
+    setSelectedPort(null);
+  };
+  // 获取端口的完整信息
+  var getPortDetails = function (port) {
+    // 首先获取当前端口所属设备的信息
+    var currentDeviceInfo = null;
+    var currentDeviceType = '';
+    var currentRackInfo = null;
+    var currentDatacenterInfo = null;
+    if (port.deviceType === 'server') {
+      currentDeviceInfo = servers.find(function (s) {
+        return s.id === port.deviceId;
+      });
+      currentDeviceType = '服务器';
+    } else if (port.deviceType === 'switch') {
+      currentDeviceInfo = switches.find(function (s) {
+        return s.id === port.deviceId;
+      });
+      currentDeviceType = '交换机';
+    } else if (port.deviceType === 'rack') {
+      currentDeviceInfo = racks.find(function (r) {
+        return r.id === port.deviceId;
+      });
+      currentDeviceType = '机柜';
+    } else if (port.deviceType === 'seat') {
+      currentDeviceInfo = seats.find(function (s) {
+        return s.id === port.deviceId;
+      });
+      currentDeviceType = '座位';
+    }
+    // 获取当前端口的机柜信息
+    if (port.deviceType === 'rack') {
+      currentRackInfo = currentDeviceInfo;
+    } else if (port.deviceType === 'server' || port.deviceType === 'switch') {
+      currentRackInfo = racks.find(function (r) {
+        return r.id === (currentDeviceInfo === null || currentDeviceInfo === void 0 ? void 0 : currentDeviceInfo.rackId);
+      });
+    }
+    // 获取当前端口的机房信息
+    if (currentRackInfo === null || currentRackInfo === void 0 ? void 0 : currentRackInfo.datacenterId) {
+      currentDatacenterInfo = datacenters.find(function (d) {
+        return d.id === currentRackInfo.datacenterId;
+      });
+    } else if (port.deviceType === 'seat' && (currentDeviceInfo === null || currentDeviceInfo === void 0 ? void 0 : currentDeviceInfo.datacenterId)) {
+      currentDatacenterInfo = datacenters.find(function (d) {
+        return d.id === currentDeviceInfo.datacenterId;
+      });
+    }
+    // 然后获取连接信息
+    var connection = getPortConnection(port.id);
+    var otherPort = null;
+    var otherDeviceInfo = null;
+    var otherDeviceType = '';
+    var otherRackInfo = null;
+    var otherDatacenterInfo = null;
+    if (connection && connection.otherPort) {
+      otherPort = connection.otherPort;
+      // 获取对端设备信息
+      if (otherPort.deviceType === 'server') {
+        otherDeviceInfo = servers.find(function (s) {
+          return s.id === otherPort.deviceId;
+        });
+        otherDeviceType = '服务器';
+      } else if (otherPort.deviceType === 'switch') {
+        otherDeviceInfo = switches.find(function (s) {
+          return s.id === otherPort.deviceId;
+        });
+        otherDeviceType = '交换机';
+      } else if (otherPort.deviceType === 'rack') {
+        otherDeviceInfo = racks.find(function (r) {
+          return r.id === otherPort.deviceId;
+        });
+        otherDeviceType = '机柜';
+      } else if (otherPort.deviceType === 'seat') {
+        otherDeviceInfo = seats.find(function (s) {
+          return s.id === otherPort.deviceId;
+        });
+        otherDeviceType = '座位';
+      }
+      // 获取对端机柜信息
+      if (otherPort.deviceType === 'rack') {
+        otherRackInfo = otherDeviceInfo;
+      } else if (otherPort.deviceType === 'server' || otherPort.deviceType === 'switch') {
+        otherRackInfo = racks.find(function (r) {
+          return r.id === (otherDeviceInfo === null || otherDeviceInfo === void 0 ? void 0 : otherDeviceInfo.rackId);
+        });
+      } else if (otherPort.deviceType === 'seat') {
+        // 座位可能没有机柜，需要另外处理
+      }
+      // 获取对端机房信息
+      if (otherRackInfo === null || otherRackInfo === void 0 ? void 0 : otherRackInfo.datacenterId) {
+        otherDatacenterInfo = datacenters.find(function (d) {
+          return d.id === otherRackInfo.datacenterId;
+        });
+      } else if (otherPort.deviceType === 'seat' && (otherDeviceInfo === null || otherDeviceInfo === void 0 ? void 0 : otherDeviceInfo.datacenterId)) {
+        otherDatacenterInfo = datacenters.find(function (d) {
+          return d.id === otherDeviceInfo.datacenterId;
+        });
+      }
+    }
+    // 至少返回当前端口信息
+    return {
+      currentPort: port,
+      currentDevice: currentDeviceInfo,
+      currentDeviceType: currentDeviceType,
+      currentRack: currentRackInfo,
+      currentDatacenter: currentDatacenterInfo,
+      otherPort: otherPort,
+      otherDevice: otherDeviceInfo,
+      otherDeviceType: otherDeviceType,
+      otherRack: otherRackInfo,
+      otherDatacenter: otherDatacenterInfo,
+      link: connection === null || connection === void 0 ? void 0 : connection.link
+    };
+  };
+  // 处理端口点击
+  var handlePortClick = function (port) {
+    var connection = getPortConnection(port.id);
+    // 只有当有连接关系时才显示弹窗
+    if (connection && connection.otherPort) {
+      setSelectedPort(port);
+    }
   };
   var selectedRack = racks.find(function (r) {
     return r.id === selectedRackId;
@@ -59368,10 +59514,10 @@ var RackPage = function () {
   // 获取端口的连接信息
   var getPortConnection = function (portId) {
     var link = links.find(function (l) {
-      return l.sourcePortId === portId || l.targetPortId === portId;
+      return l.fromPortId === portId || l.toPortId === portId;
     });
     if (!link) return null;
-    var otherPortId = link.sourcePortId === portId ? link.targetPortId : link.sourcePortId;
+    var otherPortId = link.fromPortId === portId ? link.toPortId : link.fromPortId;
     var otherPort = ports.find(function (p) {
       return p.id === otherPortId;
     });
@@ -59457,6 +59603,7 @@ var RackPage = function () {
   }().map(function (port) {
     var connection = port.id.startsWith('virtual') ? null : getPortConnection(port.id);
     var isConnected = !!connection;
+    var isVirtual = port.id.startsWith('virtual');
     // 根据状态设置颜色
     var bgClass = '';
     var borderClass = '';
@@ -59477,10 +59624,14 @@ var RackPage = function () {
       borderClass = darkMode ? 'border-gray-500' : 'border-gray-300';
       textClass = darkMode ? 'text-gray-400' : 'text-gray-600';
     }
+    var isClickable = !isVirtual && isConnected;
     return /*#__PURE__*/_react.default.createElement("div", {
       key: port.id,
-      className: "relative p-1.5 rounded border-2 transition-all " + bgClass + " " + borderClass,
-      title: port.name + ": " + (port.status === 'used' ? '已使用' : port.status === 'reserved' ? '已预留' : '空闲')
+      className: "relative p-1.5 rounded border-2 transition-all " + bgClass + " " + borderClass + " " + (isClickable ? 'cursor-pointer hover:opacity-80' : ''),
+      title: port.name + ": " + (port.status === 'used' ? '已使用' : port.status === 'reserved' ? '已预留' : '空闲') + (isVirtual ? ' (虚拟)' : ''),
+      onClick: function () {
+        return isClickable && handlePortClick(port);
+      }
     }, /*#__PURE__*/_react.default.createElement("span", {
       className: "text-xs font-medium " + textClass
     }, port.name), (port.status === 'used' || port.status === 'reserved') && /*#__PURE__*/_react.default.createElement("span", {
@@ -59648,18 +59799,22 @@ var RackPage = function () {
   }, getDevicePorts(selectedDevice.device.id).map(function (port) {
     var connection = getPortConnection(port.id);
     var isConnected = !!connection;
+    var isClickable = port.status === 'used' || isConnected;
     return /*#__PURE__*/_react.default.createElement("div", {
       key: port.id,
-      className: "p-3 rounded-lg border-2 " + (isConnected ? darkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-300' : darkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-100 border-gray-200')
+      className: "p-3 rounded-lg border-2 " + (isConnected ? darkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-300' : darkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-100 border-gray-200') + " " + (isClickable ? 'cursor-pointer hover:opacity-80' : ''),
+      onClick: function () {
+        return isClickable && handlePortClick(port);
+      }
     }, /*#__PURE__*/_react.default.createElement("div", {
       className: "flex items-center justify-between mb-2"
     }, /*#__PURE__*/_react.default.createElement("span", {
       className: "text-sm font-medium " + (darkMode ? 'text-white' : 'text-gray-900')
-    }, port.name), isConnected ? /*#__PURE__*/_react.default.createElement(_lucideReact.Wifi, {
+    }, port.name), port.status === 'used' || isConnected ? /*#__PURE__*/_react.default.createElement(_lucideReact.Network, {
       className: "w-4 h-4 " + (darkMode ? 'text-green-400' : 'text-green-500')
-    }) : /*#__PURE__*/_react.default.createElement(_lucideReact.WifiOff, {
-      className: "w-4 h-4 " + (darkMode ? 'text-gray-500' : 'text-gray-400')
-    })), /*#__PURE__*/_react.default.createElement("div", {
+    }) : /*#__PURE__*/_react.default.createElement("span", {
+      className: "w-4 h-4 flex items-center justify-center " + (darkMode ? 'text-gray-500' : 'text-gray-400')
+    }, "\u25CB")), /*#__PURE__*/_react.default.createElement("div", {
       className: "text-xs " + (darkMode ? 'text-gray-400' : 'text-gray-500')
     }, port.status === 'free' ? '空闲' : port.status === 'used' ? '已使用' : port.status), isConnected && connection.otherPort && /*#__PURE__*/_react.default.createElement("div", {
       className: "mt-2 pt-2 border-t text-xs " + (darkMode ? 'border-gray-600 text-gray-400' : 'border-gray-200 text-gray-500')
@@ -59667,10 +59822,87 @@ var RackPage = function () {
       className: "flex items-center gap-1"
     }, /*#__PURE__*/_react.default.createElement(_lucideReact.Link2, {
       className: "w-3 h-3"
-    }), /*#__PURE__*/_react.default.createElement("span", null, "\u8FDE\u63A5\u81F3 ", connection.otherPort.name))));
+    }), /*#__PURE__*/_react.default.createElement("span", null, "\u70B9\u51FB\u67E5\u770B\u8BE6\u60C5"))));
   })), getDevicePorts(selectedDevice.device.id).length === 0 && /*#__PURE__*/_react.default.createElement("p", {
     className: "text-center py-8 " + (darkMode ? 'text-gray-500' : 'text-gray-400')
-  }, "\u6682\u65E0\u7AEF\u53E3\u914D\u7F6E"))))));
+  }, "\u6682\u65E0\u7AEF\u53E3\u914D\u7F6E"))))), selectedPort && function () {
+    var portDetails = getPortDetails(selectedPort);
+    if (!portDetails || !portDetails.otherPort) return null;
+    return /*#__PURE__*/_react.default.createElement("div", {
+      className: "fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4",
+      onClick: closePortModal
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "rounded-lg max-w-lg w-full overflow-hidden shadow-xl " + (darkMode ? 'bg-gray-800' : 'bg-white'),
+      onClick: function (e) {
+        return e.stopPropagation();
+      }
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex items-center justify-between p-4 border-b " + (darkMode ? 'border-gray-700' : 'border-gray-200')
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex items-center gap-3"
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "w-10 h-10 rounded-lg flex items-center justify-center " + (darkMode ? 'bg-green-900' : 'bg-green-500')
+    }, /*#__PURE__*/_react.default.createElement(_lucideReact.Link2, {
+      className: "w-5 h-5 text-white"
+    })), /*#__PURE__*/_react.default.createElement("div", null, /*#__PURE__*/_react.default.createElement("h3", {
+      className: "text-lg font-semibold " + (darkMode ? 'text-white' : 'text-gray-900')
+    }, "\u5BF9\u7AEF\u7AEF\u53E3\u4FE1\u606F"), /*#__PURE__*/_react.default.createElement("p", {
+      className: "text-sm " + (darkMode ? 'text-gray-400' : 'text-gray-500')
+    }, portDetails.currentPort.name, " \u2192 ", portDetails.otherPort.name))), /*#__PURE__*/_react.default.createElement("button", {
+      onClick: closePortModal,
+      className: "p-2 rounded-lg transition-colors " + (darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500')
+    }, /*#__PURE__*/_react.default.createElement(_lucideReact.X, {
+      className: "w-5 h-5"
+    }))), /*#__PURE__*/_react.default.createElement("div", {
+      className: "p-4"
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "p-4 rounded-lg " + (darkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200')
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "space-y-3 text-sm"
+    }, /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "\u7AEF\u53E3\u540D\u79F0\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, portDetails.otherPort.name)), portDetails.otherDeviceType && /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "\u8BBE\u5907\u7C7B\u578B\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, portDetails.otherDeviceType)), portDetails.otherDevice && /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "\u8BBE\u5907\u540D\u79F0\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, portDetails.otherDevice.name)), portDetails.otherRack && /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "\u673A\u67DC\u540D\u79F0\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, portDetails.otherRack.name)), portDetails.otherDatacenter && /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "\u673A\u623F\u540D\u79F0\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, portDetails.otherDatacenter.name)), portDetails.otherDevice && portDetails.otherDevice.uPosition !== undefined && /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "U\u4F4D\u4F4D\u7F6E\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, "U", portDetails.otherDevice.uPosition)), portDetails.otherDevice && portDetails.otherDevice.position && /*#__PURE__*/_react.default.createElement("div", {
+      className: "flex justify-between"
+    }, /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-gray-400' : 'text-gray-600'
+    }, "\u5EA7\u4F4D\u4F4D\u7F6E\uFF1A"), /*#__PURE__*/_react.default.createElement("span", {
+      className: darkMode ? 'text-white' : 'text-gray-900'
+    }, portDetails.otherDevice.position)))))));
+  }());
 };
 exports.RackPage = RackPage;
 },{"react":"node_modules/react/index.js","../store/StoreContext":"src/store/StoreContext.tsx","../components/Header":"src/components/Header.tsx","../components/Card":"src/components/Card.tsx","../components/Select":"src/components/Select.tsx","lucide-react":"node_modules/lucide-react/dist/esm/lucide-react.js"}],"src/pages/LinkPage.tsx":[function(require,module,exports) {
@@ -61055,7 +61287,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60526" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52745" + '/');
   ws.onmessage = function (event) {
     checkedAssets = {};
     assetsToAccept = [];
