@@ -52,14 +52,15 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: CableManager-APK
-          path: android/app/build/outputs/apk/release/app-release.apk
+      - name: Generate unique version
+        id: version
+        run: echo "VERSION=v$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
 
-      - name: Upload to GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: CableManager Android APK ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
           files: android/app/build/outputs/apk/release/app-release.apk
