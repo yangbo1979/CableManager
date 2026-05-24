@@ -27620,7 +27620,7 @@ var initialState = {
   ports: [],
   links: [],
   toastMessages: [],
-  darkMode: false,
+  darkMode: true,
   currentPage: '/',
   selectedResourceType: 'datacenter'
 };
@@ -57894,9 +57894,12 @@ var Header = function (_a) {
     }),
     saveModal = _d[0],
     setSaveModal = _d[1];
-  var _e = (0, _react.useState)(2),
-    countdown = _e[0],
-    setCountdown = _e[1];
+  var _e = (0, _react.useState)(false),
+    helpModal = _e[0],
+    setHelpModal = _e[1];
+  var _f = (0, _react.useState)(2),
+    countdown = _f[0],
+    setCountdown = _f[1];
   // 倒计时自动关闭
   (0, _react.useEffect)(function () {
     if (saveModal.isOpen && saveModal.success) {
@@ -57995,6 +57998,13 @@ var Header = function (_a) {
     className: "p-2 rounded-lg transition-colors " + (darkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')
   }, /*#__PURE__*/_react.default.createElement(_lucideReact.Palette, {
     className: "w-5 h-5"
+  })), /*#__PURE__*/_react.default.createElement("button", {
+    onClick: function () {
+      return setHelpModal(true);
+    },
+    className: "p-2 rounded-lg transition-colors " + (darkMode ? 'bg-gray-700 hover:bg-gray-600 text-blue-400' : 'bg-gray-100 hover:bg-gray-200 text-blue-600')
+  }, /*#__PURE__*/_react.default.createElement(_lucideReact.HelpCircle, {
+    className: "w-5 h-5"
   })))), /*#__PURE__*/_react.default.createElement("nav", {
     className: "flex border-t overflow-x-auto scrollbar-thin"
   }, navItems.map(function (item) {
@@ -58038,7 +58048,42 @@ var Header = function (_a) {
       }));
     },
     className: "px-4 py-2 rounded-lg font-medium transition-colors " + (saveModal.success ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white')
-  }, saveModal.success ? "" + (countdown > 0 ? "\u786E\u5B9A (" + countdown + ")" : '确定') : '确定')))));
+  }, saveModal.success ? "" + (countdown > 0 ? "\u786E\u5B9A (" + countdown + ")" : '确定') : '确定')))), helpModal && /*#__PURE__*/_react.default.createElement("div", {
+    className: "fixed inset-0 bg-black/50 flex items-center justify-center z-[100]"
+  }, /*#__PURE__*/_react.default.createElement("div", {
+    className: "bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl " + (darkMode ? 'bg-gray-800' : '')
+  }, /*#__PURE__*/_react.default.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, /*#__PURE__*/_react.default.createElement("h3", {
+    className: "text-lg font-semibold " + (darkMode ? 'text-white' : 'text-gray-900')
+  }, "\u5E2E\u52A9\u6587\u6863"), /*#__PURE__*/_react.default.createElement("button", {
+    onClick: function () {
+      return setHelpModal(false);
+    },
+    className: "p-1 rounded transition-colors " + (darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500')
+  }, /*#__PURE__*/_react.default.createElement(_lucideReact.XCircle, {
+    className: "w-5 h-5"
+  }))), /*#__PURE__*/_react.default.createElement("div", {
+    className: "space-y-4 text-sm " + (darkMode ? 'text-gray-300' : 'text-gray-600')
+  }, /*#__PURE__*/_react.default.createElement("p", null, /*#__PURE__*/_react.default.createElement("a", {
+    href: "https://cablemanager.vercel.app/",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "flex items-center gap-1 text-blue-400 hover:underline " + (darkMode ? '' : 'text-blue-600')
+  }, "https://cablemanager.vercel.app/", /*#__PURE__*/_react.default.createElement(_lucideReact.ExternalLink, {
+    className: "w-3 h-3"
+  }))), /*#__PURE__*/_react.default.createElement("p", {
+    className: "whitespace-pre-line"
+  }, "\u9762\u5411\u673A\u623F\u8FD0\u7EF4\u4EBA\u5458\u3001\u7F51\u7EDC\u7BA1\u7406\u5458\u7684\u53EF\u89C6\u5316\u7F51\u7EBF\u8FDE\u63A5\u7BA1\u7406\u5DE5\u5177\uFF0C\u6838\u5FC3\u5B9E\u73B0\u673A\u623F\u7F51\u7EDC\u7269\u7406\u94FE\u8DEF\u7684\u53EF\u89C6\u5316\u914D\u7F6E\u3001\u7AEF\u53E3\u5360\u7528\u7BA1\u63A7\u3001\u914D\u7F6E\u6301\u4E45\u5316\u5B58\u50A8\u4E0E\u5907\u4EFD\u6062\u590D\uFF0C\u89E3\u51B3\u673A\u623F\u7F51\u7EBF\u6742\u4E71\u3001\u7AEF\u53E3\u590D\u7528\u3001\u94FE\u8DEF\u8FFD\u6EAF\u56F0\u96BE\u7684\u8FD0\u7EF4\u75DB\u70B9\uFF0C\u5168\u7A0B\u672C\u5730\u64CD\u4F5C\uFF0C\u65E0\u4E91\u7AEF\u4F9D\u8D56\uFF0C\u6570\u636E\u5B89\u5168\u53EF\u63A7\u3002"), /*#__PURE__*/_react.default.createElement("p", {
+    className: "whitespace-pre-line"
+  }, "\u672C\u5730\u6570\u636E\u5BFC\u51FA\u540E\uFF0C\u53EF\u4EE5\u5728\u4EFB\u610F\u5176\u5B83\u8BBE\u5907\u4E0A\u8BBF\u95EE\u4E0A\u9762\u7F51\u9875\u5E76\u5BFC\u5165\u6570\u636E\u5373\u53EF\u4EE5\u5B9E\u73B0\u540C\u6B65\u3002\u6570\u636E\u5B8C\u5168\u81EA\u4E3B\u53EF\u63A7\u3002")), /*#__PURE__*/_react.default.createElement("div", {
+    className: "mt-6 flex justify-end"
+  }, /*#__PURE__*/_react.default.createElement("button", {
+    onClick: function () {
+      return setHelpModal(false);
+    },
+    className: "px-4 py-2 rounded-lg font-medium transition-colors " + (darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700')
+  }, "\u786E\u5B9A")))));
 };
 exports.Header = Header;
 },{"react":"node_modules/react/index.js","lucide-react":"node_modules/lucide-react/dist/esm/lucide-react.js","../store/StoreContext":"src/store/StoreContext.tsx"}],"src/components/Card.tsx":[function(require,module,exports) {
@@ -61287,7 +61332,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52745" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54269" + '/');
   ws.onmessage = function (event) {
     checkedAssets = {};
     assetsToAccept = [];

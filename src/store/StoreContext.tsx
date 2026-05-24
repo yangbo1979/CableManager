@@ -62,7 +62,7 @@ const initialState: AppState = {
   ports: [],
   links: [],
   toastMessages: [],
-  darkMode: false,
+  darkMode: true,
   currentPage: '/',
   selectedResourceType: 'datacenter',
 };

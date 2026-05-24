@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Settings, Link2, Archive, Palette, Save, Database, Wifi, CheckCircle, XCircle } from 'lucide-react';
+import { Monitor, Settings, Link2, Archive, Palette, Save, Database, Wifi, CheckCircle, XCircle, HelpCircle, ExternalLink } from 'lucide-react';
 import { useStore } from '../store/StoreContext';
 
 interface HeaderProps {
@@ -23,6 +23,7 @@ export const Header = ({ title, showSave = false }: HeaderProps) => {
     success: false,
     message: '',
   });
+  const [helpModal, setHelpModal] = useState(false);
   const [countdown, setCountdown] = useState(2);
 
   // 倒计时自动关闭
@@ -97,6 +98,12 @@ export const Header = ({ title, showSave = false }: HeaderProps) => {
           >
             <Palette className="w-5 h-5" />
           </button>
+          <button
+            onClick={() => setHelpModal(true)}
+            className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-blue-400' : 'bg-gray-100 hover:bg-gray-200 text-blue-600'}`}
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
         </div>
       </div>
       <nav className="flex border-t overflow-x-auto scrollbar-thin">
@@ -159,6 +166,51 @@ export const Header = ({ title, showSave = false }: HeaderProps) => {
                 }`}
               >
                 {saveModal.success ? `${countdown > 0 ? `确定 (${countdown})` : '确定'}` : '确定'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {helpModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+          <div className={`bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl ${darkMode ? 'bg-gray-800' : ''}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                帮助文档
+              </h3>
+              <button
+                onClick={() => setHelpModal(false)}
+                className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className={`space-y-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p>
+                <a
+                  href="https://cablemanager.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-1 text-blue-400 hover:underline ${darkMode ? '' : 'text-blue-600'}`}
+                >
+                  https://cablemanager.vercel.app/
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </p>
+              <p className="whitespace-pre-line">
+                面向机房运维人员、网络管理员的可视化网线连接管理工具，核心实现机房网络物理链路的可视化配置、端口占用管控、配置持久化存储与备份恢复，解决机房网线杂乱、端口复用、链路追溯困难的运维痛点，全程本地操作，无云端依赖，数据安全可控。
+              </p>
+              <p className="whitespace-pre-line">
+                本地数据导出后，可以在任意其它设备上访问上面网页并导入数据即可以实现同步。数据完全自主可控。
+              </p>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setHelpModal(false)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+              >
+                确定
               </button>
             </div>
           </div>
