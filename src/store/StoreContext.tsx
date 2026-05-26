@@ -745,7 +745,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const exportConfig = useCallback(() => {
     const { datacenters, racks, servers, switches, seats, ports, links } = state;
-    return JSON.stringify({ datacenters, racks, servers, switches, seats, ports, links }, null, 2);
+    // 只导出状态为 'used' 的端口
+    const usedPorts = ports.filter(p => p.status === 'used');
+    // 只导出两端口都在 usedPorts 中的链路
+    const usedPortIds = new Set(usedPorts.map(p => p.id));
+    const validLinks = links.filter(l => usedPortIds.has(l.fromPortId) && usedPortIds.has(l.toPortId));
+    return JSON.stringify({ datacenters, racks, servers, switches, seats, ports: usedPorts, links: validLinks }, null, 2);
   }, [state]);
 
   const saveConfig = useCallback(() => {
@@ -806,7 +811,124 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const importConfig = useCallback((config: string) => {
     try {
       const data = JSON.parse(config);
-      dispatch({ type: 'LOAD_CONFIG', payload: { ...initialState, ...data } });
+      const { datacenters, racks, servers, switches, seats, ports: existingPorts, links } = data;
+      
+      // 创建一个 Map 来保存每个设备的现有端口
+      const portMap = new Map<string, Port[]>();
+      existingPorts.forEach((port: Port) => {
+        const key = `${port.deviceType}-${port.deviceId}`;
+        if (!portMap.has(key)) {
+          portMap.set(key, []);
+        }
+        portMap.get(key)!.push(port);
+      });
+
+      const generateId = () => Math.random().toString(36).substring(2, 11);
+      const now = () => new Date().toISOString();
+      
+      const newPorts: Port[] = [...existingPorts];
+
+      // 为机柜创建缺失的端口
+      racks.forEach((rack: Rack) => {
+        const key = `rack-${rack.id}`;
+        const devicePorts = portMap.get(key) || [];
+        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        
+        for (let i = 1; i <= rack.portCount; i++) {
+          const portName = `Port${i}`;
+          if (!existingPortNames.has(portName)) {
+            newPorts.push({
+              id: generateId(),
+              name: portName,
+              deviceType: 'rack',
+              deviceId: rack.id,
+              status: 'free',
+              createdAt: now(),
+              updatedAt: now(),
+            });
+          }
+        }
+      });
+
+      // 为服务器创建缺失的端口
+      servers.forEach((server: Server) => {
+        const key = `server-${server.id}`;
+        const devicePorts = portMap.get(key) || [];
+        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        
+        for (let i = 1; i <= server.portCount; i++) {
+          const portName = `ETH${i}`;
+          if (!existingPortNames.has(portName)) {
+            newPorts.push({
+              id: generateId(),
+              name: portName,
+              deviceType: 'server',
+              deviceId: server.id,
+              status: 'free',
+              createdAt: now(),
+              updatedAt: now(),
+            });
+          }
+        }
+      });
+
+      // 为交换机创建缺失的端口
+      switches.forEach((switchDev: Switch) => {
+        const key = `switch-${switchDev.id}`;
+        const devicePorts = portMap.get(key) || [];
+        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        
+        for (let i = 1; i <= switchDev.portCount; i++) {
+          const portName = `Port${i}`;
+          if (!existingPortNames.has(portName)) {
+            newPorts.push({
+              id: generateId(),
+              name: portName,
+              deviceType: 'switch',
+              deviceId: switchDev.id,
+              status: 'free',
+              createdAt: now(),
+              updatedAt: now(),
+            });
+          }
+        }
+      });
+
+      // 为座位创建缺失的端口
+      seats.forEach((seat: Seat) => {
+        const key = `seat-${seat.id}`;
+        const devicePorts = portMap.get(key) || [];
+        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        
+        for (let i = 1; i <= seat.portCount; i++) {
+          const portName = `Port${i}`;
+          if (!existingPortNames.has(portName)) {
+            newPorts.push({
+              id: generateId(),
+              name: portName,
+              deviceType: 'seat',
+              deviceId: seat.id,
+              status: 'free',
+              createdAt: now(),
+              updatedAt: now(),
+            });
+          }
+        }
+      });
+
+      dispatch({ 
+        type: 'LOAD_CONFIG', 
+        payload: { 
+          ...initialState, 
+          datacenters, 
+          racks, 
+          servers, 
+          switches, 
+          seats, 
+          ports: newPorts, 
+          links 
+        } 
+      });
       addToast('success', '配置导入成功');
       return true;
     } catch {
