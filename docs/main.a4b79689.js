@@ -28547,14 +28547,25 @@ function StoreProvider(_a) {
       seats = state.seats,
       ports = state.ports,
       links = state.links;
+    // 只导出状态为 'used' 的端口
+    var usedPorts = ports.filter(function (p) {
+      return p.status === 'used';
+    });
+    // 只导出两端口都在 usedPorts 中的链路
+    var usedPortIds = new Set(usedPorts.map(function (p) {
+      return p.id;
+    }));
+    var validLinks = links.filter(function (l) {
+      return usedPortIds.has(l.fromPortId) && usedPortIds.has(l.toPortId);
+    });
     return JSON.stringify({
       datacenters: datacenters,
       racks: racks,
       servers: servers,
       switches: switches,
       seats: seats,
-      ports: ports,
-      links: links
+      ports: usedPorts,
+      links: validLinks
     }, null, 2);
   }, [state]);
   var saveConfig = (0, _react.useCallback)(function () {
@@ -28626,13 +28637,208 @@ function StoreProvider(_a) {
   var importConfig = (0, _react.useCallback)(function (config) {
     try {
       var data = JSON.parse(config);
+      var datacenters = data.datacenters,
+        racks = data.racks,
+        servers = data.servers,
+        switches = data.switches,
+        seats = data.seats,
+        existingPorts_1 = data.ports,
+        links = data.links;
+      var generateId_1 = function () {
+        return Math.random().toString(36).substring(2, 11);
+      };
+      var now_1 = function () {
+        return new Date().toISOString();
+      };
+      var newPorts_1 = [];
+      // 为机柜创建端口（包含已导入的和缺失的）
+      racks.forEach(function (rack) {
+        var key = "rack-" + rack.id;
+        var devicePorts = existingPorts_1.filter(function (p) {
+          return p.deviceType === 'rack' && p.deviceId === rack.id;
+        });
+        var _loop_1 = function (i) {
+          var portName = "Port" + i;
+          var existingPort = devicePorts.find(function (p) {
+            var pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name.replace('Port', '')) || 0;
+            return pIndex === i || p.name === portName;
+          });
+          if (existingPort) {
+            newPorts_1.push(__assign(__assign({}, existingPort), {
+              name: portName,
+              deviceType: 'rack',
+              deviceId: rack.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now_1(),
+              updatedAt: existingPort.updatedAt || now_1()
+            }));
+          } else {
+            newPorts_1.push({
+              id: generateId_1(),
+              name: portName,
+              deviceType: 'rack',
+              deviceId: rack.id,
+              status: 'free',
+              portIndex: i,
+              createdAt: now_1(),
+              updatedAt: now_1()
+            });
+          }
+        };
+        for (var i = 1; i <= rack.portCount; i++) {
+          _loop_1(i);
+        }
+      });
+      // 为服务器创建端口（包含已导入的和缺失的）
+      servers.forEach(function (server) {
+        var devicePorts = existingPorts_1.filter(function (p) {
+          return p.deviceType === 'server' && p.deviceId === server.id;
+        });
+        var _loop_2 = function (i) {
+          var portName = "ETH" + i;
+          var existingPort = devicePorts.find(function (p) {
+            var pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name.replace('ETH', '')) || 0;
+            return pIndex === i || p.name === portName;
+          });
+          if (existingPort) {
+            newPorts_1.push(__assign(__assign({}, existingPort), {
+              name: portName,
+              deviceType: 'server',
+              deviceId: server.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now_1(),
+              updatedAt: existingPort.updatedAt || now_1()
+            }));
+          } else {
+            newPorts_1.push({
+              id: generateId_1(),
+              name: portName,
+              deviceType: 'server',
+              deviceId: server.id,
+              status: 'free',
+              portIndex: i,
+              createdAt: now_1(),
+              updatedAt: now_1()
+            });
+          }
+        };
+        for (var i = 1; i <= server.portCount; i++) {
+          _loop_2(i);
+        }
+      });
+      // 为交换机创建端口（包含已导入的和缺失的）
+      switches.forEach(function (switchDev) {
+        var devicePorts = existingPorts_1.filter(function (p) {
+          return p.deviceType === 'switch' && p.deviceId === switchDev.id;
+        });
+        var _loop_3 = function (i) {
+          var portName = "Port" + i;
+          var existingPort = devicePorts.find(function (p) {
+            var pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name.replace('Port', '')) || 0;
+            return pIndex === i || p.name === portName;
+          });
+          if (existingPort) {
+            newPorts_1.push(__assign(__assign({}, existingPort), {
+              name: portName,
+              deviceType: 'switch',
+              deviceId: switchDev.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now_1(),
+              updatedAt: existingPort.updatedAt || now_1()
+            }));
+          } else {
+            newPorts_1.push({
+              id: generateId_1(),
+              name: portName,
+              deviceType: 'switch',
+              deviceId: switchDev.id,
+              status: 'free',
+              portIndex: i,
+              createdAt: now_1(),
+              updatedAt: now_1()
+            });
+          }
+        };
+        for (var i = 1; i <= switchDev.portCount; i++) {
+          _loop_3(i);
+        }
+      });
+      // 为座位创建端口（包含已导入的和缺失的）
+      seats.forEach(function (seat) {
+        var devicePorts = existingPorts_1.filter(function (p) {
+          return p.deviceType === 'seat' && p.deviceId === seat.id;
+        });
+        var _loop_4 = function (i) {
+          var portName = "Port" + i;
+          var existingPort = devicePorts.find(function (p) {
+            var pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name) || 0;
+            return pIndex === i || p.name === portName || p.name === String(i);
+          });
+          if (existingPort) {
+            newPorts_1.push(__assign(__assign({}, existingPort), {
+              name: portName,
+              deviceType: 'seat',
+              deviceId: seat.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now_1(),
+              updatedAt: existingPort.updatedAt || now_1()
+            }));
+          } else {
+            newPorts_1.push({
+              id: generateId_1(),
+              name: portName,
+              deviceType: 'seat',
+              deviceId: seat.id,
+              status: 'free',
+              portIndex: i,
+              createdAt: now_1(),
+              updatedAt: now_1()
+            });
+          }
+        };
+        for (var i = 1; i <= seat.portCount; i++) {
+          _loop_4(i);
+        }
+      });
+      // 转换 links 格式（支持 sourcePortId/targetPortId 或 fromPortId/toPortId）
+      var convertedLinks = links.map(function (link) {
+        return {
+          id: link.id || generateId_1(),
+          fromPortId: link.fromPortId || link.sourcePortId,
+          toPortId: link.toPortId || link.targetPortId,
+          note: link.note || '',
+          createdAt: link.createdAt || now_1()
+        };
+      });
+      // 按设备类型、设备ID、端口序号排序端口
+      newPorts_1.sort(function (a, b) {
+        var typeOrder = {
+          rack: 0,
+          switch: 1,
+          server: 2,
+          seat: 3
+        };
+        var typeCompare = typeOrder[a.deviceType] - typeOrder[b.deviceType];
+        if (typeCompare !== 0) return typeCompare;
+        if (a.deviceId !== b.deviceId) return a.deviceId.localeCompare(b.deviceId);
+        return (a.portIndex || 0) - (b.portIndex || 0);
+      });
       dispatch({
         type: 'LOAD_CONFIG',
-        payload: __assign(__assign({}, initialState), data)
+        payload: __assign(__assign({}, initialState), {
+          datacenters: datacenters,
+          racks: racks,
+          servers: servers,
+          switches: switches,
+          seats: seats,
+          ports: newPorts_1,
+          links: convertedLinks
+        })
       });
       addToast('success', '配置导入成功');
       return true;
-    } catch (_a) {
+    } catch (error) {
+      console.error('导入配置失败:', error);
       addToast('error', '配置文件格式错误');
       return false;
     }
@@ -61332,7 +61538,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54269" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60357" + '/');
   ws.onmessage = function (event) {
     checkedAssets = {};
     assetsToAccept = [];

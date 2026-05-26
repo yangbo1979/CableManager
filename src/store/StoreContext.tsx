@@ -813,36 +813,41 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const data = JSON.parse(config);
       const { datacenters, racks, servers, switches, seats, ports: existingPorts, links } = data;
       
-      // 创建一个 Map 来保存每个设备的现有端口
-      const portMap = new Map<string, Port[]>();
-      existingPorts.forEach((port: Port) => {
-        const key = `${port.deviceType}-${port.deviceId}`;
-        if (!portMap.has(key)) {
-          portMap.set(key, []);
-        }
-        portMap.get(key)!.push(port);
-      });
-
       const generateId = () => Math.random().toString(36).substring(2, 11);
       const now = () => new Date().toISOString();
       
-      const newPorts: Port[] = [...existingPorts];
+      const newPorts: Port[] = [];
 
-      // 为机柜创建缺失的端口
+      // 为机柜创建端口（包含已导入的和缺失的）
       racks.forEach((rack: Rack) => {
         const key = `rack-${rack.id}`;
-        const devicePorts = portMap.get(key) || [];
-        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        const devicePorts = existingPorts.filter((p: Port) => p.deviceType === 'rack' && p.deviceId === rack.id);
         
         for (let i = 1; i <= rack.portCount; i++) {
           const portName = `Port${i}`;
-          if (!existingPortNames.has(portName)) {
+          const existingPort = devicePorts.find((p: Port) => {
+            const pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name.replace('Port', '')) || 0;
+            return pIndex === i || p.name === portName;
+          });
+          
+          if (existingPort) {
+            newPorts.push({
+              ...existingPort,
+              name: portName,
+              deviceType: 'rack' as const,
+              deviceId: rack.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now(),
+              updatedAt: existingPort.updatedAt || now(),
+            });
+          } else {
             newPorts.push({
               id: generateId(),
               name: portName,
               deviceType: 'rack',
               deviceId: rack.id,
               status: 'free',
+              portIndex: i,
               createdAt: now(),
               updatedAt: now(),
             });
@@ -850,21 +855,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      // 为服务器创建缺失的端口
+      // 为服务器创建端口（包含已导入的和缺失的）
       servers.forEach((server: Server) => {
-        const key = `server-${server.id}`;
-        const devicePorts = portMap.get(key) || [];
-        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        const devicePorts = existingPorts.filter((p: Port) => p.deviceType === 'server' && p.deviceId === server.id);
         
         for (let i = 1; i <= server.portCount; i++) {
           const portName = `ETH${i}`;
-          if (!existingPortNames.has(portName)) {
+          const existingPort = devicePorts.find((p: Port) => {
+            const pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name.replace('ETH', '')) || 0;
+            return pIndex === i || p.name === portName;
+          });
+          
+          if (existingPort) {
+            newPorts.push({
+              ...existingPort,
+              name: portName,
+              deviceType: 'server' as const,
+              deviceId: server.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now(),
+              updatedAt: existingPort.updatedAt || now(),
+            });
+          } else {
             newPorts.push({
               id: generateId(),
               name: portName,
               deviceType: 'server',
               deviceId: server.id,
               status: 'free',
+              portIndex: i,
               createdAt: now(),
               updatedAt: now(),
             });
@@ -872,21 +891,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      // 为交换机创建缺失的端口
+      // 为交换机创建端口（包含已导入的和缺失的）
       switches.forEach((switchDev: Switch) => {
-        const key = `switch-${switchDev.id}`;
-        const devicePorts = portMap.get(key) || [];
-        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        const devicePorts = existingPorts.filter((p: Port) => p.deviceType === 'switch' && p.deviceId === switchDev.id);
         
         for (let i = 1; i <= switchDev.portCount; i++) {
           const portName = `Port${i}`;
-          if (!existingPortNames.has(portName)) {
+          const existingPort = devicePorts.find((p: Port) => {
+            const pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name.replace('Port', '')) || 0;
+            return pIndex === i || p.name === portName;
+          });
+          
+          if (existingPort) {
+            newPorts.push({
+              ...existingPort,
+              name: portName,
+              deviceType: 'switch' as const,
+              deviceId: switchDev.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now(),
+              updatedAt: existingPort.updatedAt || now(),
+            });
+          } else {
             newPorts.push({
               id: generateId(),
               name: portName,
               deviceType: 'switch',
               deviceId: switchDev.id,
               status: 'free',
+              portIndex: i,
               createdAt: now(),
               updatedAt: now(),
             });
@@ -894,26 +927,58 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      // 为座位创建缺失的端口
+      // 为座位创建端口（包含已导入的和缺失的）
       seats.forEach((seat: Seat) => {
-        const key = `seat-${seat.id}`;
-        const devicePorts = portMap.get(key) || [];
-        const existingPortNames = new Set(devicePorts.map(p => p.name));
+        const devicePorts = existingPorts.filter((p: Port) => p.deviceType === 'seat' && p.deviceId === seat.id);
         
         for (let i = 1; i <= seat.portCount; i++) {
           const portName = `Port${i}`;
-          if (!existingPortNames.has(portName)) {
+          const existingPort = devicePorts.find((p: Port) => {
+            const pIndex = p.portIndex !== undefined ? p.portIndex : parseInt(p.name) || 0;
+            return pIndex === i || p.name === portName || p.name === String(i);
+          });
+          
+          if (existingPort) {
+            newPorts.push({
+              ...existingPort,
+              name: portName,
+              deviceType: 'seat' as const,
+              deviceId: seat.id,
+              portIndex: i,
+              createdAt: existingPort.createdAt || now(),
+              updatedAt: existingPort.updatedAt || now(),
+            });
+          } else {
             newPorts.push({
               id: generateId(),
               name: portName,
               deviceType: 'seat',
               deviceId: seat.id,
               status: 'free',
+              portIndex: i,
               createdAt: now(),
               updatedAt: now(),
             });
           }
         }
+      });
+
+      // 转换 links 格式（支持 sourcePortId/targetPortId 或 fromPortId/toPortId）
+      const convertedLinks = links.map((link: any) => ({
+        id: link.id || generateId(),
+        fromPortId: link.fromPortId || link.sourcePortId,
+        toPortId: link.toPortId || link.targetPortId,
+        note: link.note || '',
+        createdAt: link.createdAt || now(),
+      }));
+
+      // 按设备类型、设备ID、端口序号排序端口
+      newPorts.sort((a, b) => {
+        const typeOrder = { rack: 0, switch: 1, server: 2, seat: 3 };
+        const typeCompare = typeOrder[a.deviceType] - typeOrder[b.deviceType];
+        if (typeCompare !== 0) return typeCompare;
+        if (a.deviceId !== b.deviceId) return a.deviceId.localeCompare(b.deviceId);
+        return (a.portIndex || 0) - (b.portIndex || 0);
       });
 
       dispatch({ 
@@ -926,12 +991,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           switches, 
           seats, 
           ports: newPorts, 
-          links 
+          links: convertedLinks 
         } 
       });
       addToast('success', '配置导入成功');
       return true;
-    } catch {
+    } catch (error) {
+      console.error('导入配置失败:', error);
       addToast('error', '配置文件格式错误');
       return false;
     }

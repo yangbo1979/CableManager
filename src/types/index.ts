@@ -58,6 +58,7 @@ export interface Port {
   deviceId: string;
   status: 'free' | 'used' | 'reserved';
   connectedTo?: string;
+  portIndex?: number;
   createdAt: string;
   updatedAt: string;
 }
